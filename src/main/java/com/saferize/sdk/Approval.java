@@ -10,7 +10,14 @@ public class Approval {
 		REJECTED,
 	}
 	
+
+	public enum State {
+	    ACTIVE,
+	    PAUSED,
+	}
+	
 	private Status status;
+	private State currentState;
 	
 	public Approval() {
 		// TODO Auto-generated constructor stub
@@ -19,6 +26,10 @@ public class Approval {
 	public Status getStatus() {
 		return status;
 	}
+	
+	public State getCurrentStateState() {
+		return currentState;
+	};
 	
 	
 

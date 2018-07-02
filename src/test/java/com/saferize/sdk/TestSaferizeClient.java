@@ -8,8 +8,6 @@ import java.util.Date;
 
 import org.junit.Test;
 
-import com.saferize.sdk.internals.WebsocketConnection;
-
 
 public class TestSaferizeClient {
 

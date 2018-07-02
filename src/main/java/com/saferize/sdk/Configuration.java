@@ -1,7 +1,6 @@
 package com.saferize.sdk;
 
 import java.net.URI;
-import java.net.URL;
 
 public final class Configuration {
 

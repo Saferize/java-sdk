@@ -14,7 +14,9 @@ public final class SaferizeClient implements WebsocketConnection {
 	private WebsocketClient websocket;
 	private Gson gson;
 	private SaferizeSession session;
+	
 	private Consumer<SaferizeSession> onPaused;
+	private Consumer<SaferizeSession> onResumed;
 	
 	
 	public  SaferizeClient(Configuration configuration) throws AuthenticationException, WebsocketException {
@@ -57,6 +59,10 @@ public final class SaferizeClient implements WebsocketConnection {
 		this.onPaused = onPause;
 	}
 	
+	
+	public void onResume(Consumer<SaferizeSession> onResume) {
+		this.onResumed = onResume;
+	}
 
 	@Override
 	public void onConnect() {
@@ -66,10 +72,20 @@ public final class SaferizeClient implements WebsocketConnection {
 
 
 	@Override
-	public void onMessage(String message) {		
-		if (onPaused != null) {
-			onPaused.accept(null);
+	public void onMessage(String message) {
+		JsonObject rootObject = gson.fromJson(message, JsonObject.class);
+		String eventType = rootObject.get("eventType").getAsString();
+		switch (eventType) {
+			case "ApprovalStateChangedEvent": 
+				ApprovalStateChangedEvent event = gson.fromJson(message, ApprovalStateChangedEvent.class);
+				if (Approval.State.PAUSED == event.getEntity().getCurrentStateState()) {
+					if (onPaused != null) onPaused.accept(session);
+				} else {
+					if (onResumed != null) onResumed.accept(session);
+				}
+				break;				
 		}
+
 	}
 
 
