@@ -17,7 +17,7 @@ public final class SaferizeClient implements WebsocketConnection {
 	
 	private Consumer<SaferizeSession> onPaused;
 	private Consumer<SaferizeSession> onResumed;
-	
+	private Consumer<SaferizeSession> onTimeIsUp;
 	
 	public  SaferizeClient(Configuration configuration) throws AuthenticationException, WebsocketException {
 		this.connection = new SaferizeConnection(configuration);
@@ -26,7 +26,7 @@ public final class SaferizeClient implements WebsocketConnection {
 	}
 		
 	
-	public Approval signUp(String parentEmail, String userToken) throws ConnectionException {
+	public Approval signUp(String parentEmail, String userToken) throws SaferizeClientException {
 		JsonObject root = new JsonObject();
 		JsonObject user = new JsonObject();
 		JsonObject parent = new JsonObject();
@@ -41,7 +41,7 @@ public final class SaferizeClient implements WebsocketConnection {
 		return approval;
 	}
 	
-	public SaferizeSession createSession(String userToken) throws ConnectionException {		
+	public SaferizeSession createSession(String userToken) throws SaferizeClientException {		
 		String resp = connection.post("/session/app/" + userToken, "");
 		session = gson.fromJson(resp, SaferizeSession.class);
 		return session;
@@ -63,6 +63,10 @@ public final class SaferizeClient implements WebsocketConnection {
 	public void onResume(Consumer<SaferizeSession> onResume) {
 		this.onResumed = onResume;
 	}
+	
+	public void onTimeIsUp(Consumer<SaferizeSession> onTimeIsUp) {
+		this.onTimeIsUp = onTimeIsUp;
+	}
 
 	@Override
 	public void onConnect() {
@@ -77,13 +81,16 @@ public final class SaferizeClient implements WebsocketConnection {
 		String eventType = rootObject.get("eventType").getAsString();
 		switch (eventType) {
 			case "ApprovalStateChangedEvent": 
-				ApprovalStateChangedEvent event = gson.fromJson(message, ApprovalStateChangedEvent.class);
-				if (Approval.State.PAUSED == event.getEntity().getCurrentStateState()) {
+				ApprovalStateChangedEvent approvalEvent = gson.fromJson(message, ApprovalStateChangedEvent.class);
+				if (Approval.State.PAUSED == approvalEvent.getEntity().getCurrentStateState()) {
 					if (onPaused != null) onPaused.accept(session);
 				} else {
 					if (onResumed != null) onResumed.accept(session);
 				}
-				break;				
+				break;	
+			case "UsageTimerTimeIsUpEvent": 
+				if (onTimeIsUp != null) onTimeIsUp.accept(session);
+				break;
 		}
 
 	}
