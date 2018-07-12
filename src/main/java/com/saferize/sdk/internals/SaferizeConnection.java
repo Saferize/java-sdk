@@ -11,6 +11,7 @@ import com.google.gson.JsonSyntaxException;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
+import com.saferize.sdk.ApprovalNotFoundException;
 import com.saferize.sdk.AuthenticationException;
 import com.saferize.sdk.Configuration;
 import com.saferize.sdk.ConnectionException;
@@ -38,6 +39,7 @@ public class SaferizeConnection {
 		}
 		
 		errorMapping.put("com.saferize.core.entities.appusagesession.UsageTimerTimeIsUpException", TimeIsUpException::new);
+		errorMapping.put("com.saferize.core.entities.approval.ApprovalNotFoundException", ApprovalNotFoundException::new);
 	}
 
 	public String get(String path) throws ConnectionException {
