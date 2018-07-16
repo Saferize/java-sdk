@@ -27,7 +27,7 @@ public class Approval {
 		return status;
 	}
 	
-	public State getCurrentStateState() {
+	public State getCurrentState() {
 		return currentState;
 	};
 	

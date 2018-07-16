@@ -1,6 +1,6 @@
 package com.saferize.sdk;
 
-public class WebsocketException extends Exception {
+public class WebsocketException extends SaferizeClientException {
 
 	private static final long serialVersionUID = 1L;
 

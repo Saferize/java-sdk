@@ -18,6 +18,9 @@ public final class SaferizeClient implements WebsocketConnection {
 	private Consumer<SaferizeSession> onPaused;
 	private Consumer<SaferizeSession> onResumed;
 	private Consumer<SaferizeSession> onTimeIsUp;
+	private Consumer<SaferizeSession> onError;
+	private Consumer<SaferizeSession> onDisconnect;
+	private Consumer<SaferizeSession> onConnect;
 	
 	public  SaferizeClient(Configuration configuration) throws AuthenticationException, WebsocketException {
 		this.connection = new SaferizeConnection(configuration);
@@ -52,7 +55,8 @@ public final class SaferizeClient implements WebsocketConnection {
 		if (session == null) {
 			throw new WebsocketException("Cannot start websocket connection before initiating a session");
 		}
-		websocket.connect(session);		
+		websocket.connect(session);	
+		
 	}
 
 	public void onPause(Consumer<SaferizeSession> onPause) {
@@ -67,11 +71,22 @@ public final class SaferizeClient implements WebsocketConnection {
 	public void onTimeIsUp(Consumer<SaferizeSession> onTimeIsUp) {
 		this.onTimeIsUp = onTimeIsUp;
 	}
+	
+	public void onError(Consumer<SaferizeSession> onError) {
+		this.onError = onError;
+	}
+	
+	public void onDisconnect(Consumer<SaferizeSession> onDisconnect) {
+		this.onDisconnect = onDisconnect;
+	}
+	
+	public void onConnect(Consumer<SaferizeSession> onConnect) {
+			this.onConnect = onConnect;	
+	}
 
 	@Override
 	public void onConnect() {
-		// TODO Auto-generated method stub
-		
+		if (this.onConnect != null) onConnect.accept(session);
 	}
 
 
@@ -82,7 +97,8 @@ public final class SaferizeClient implements WebsocketConnection {
 		switch (eventType) {
 			case "ApprovalStateChangedEvent": 
 				ApprovalStateChangedEvent approvalEvent = gson.fromJson(message, ApprovalStateChangedEvent.class);
-				if (Approval.State.PAUSED == approvalEvent.getEntity().getCurrentStateState()) {
+				session.setApproval(approvalEvent.getEntity());
+				if (Approval.State.PAUSED == approvalEvent.getEntity().getCurrentState()) {
 					if (onPaused != null) onPaused.accept(session);
 				} else {
 					if (onResumed != null) onResumed.accept(session);
@@ -98,7 +114,18 @@ public final class SaferizeClient implements WebsocketConnection {
 
 	@Override
 	public void onDisconnect() {
-		// TODO Auto-generated method stub
+		if (onDisconnect != null) {
+			onDisconnect.accept(session);
+		}
+		
+	}
+
+
+	@Override
+	public void onError() {
+		if (onError != null) {
+			onError.accept(session);
+		}
 		
 	}
 	

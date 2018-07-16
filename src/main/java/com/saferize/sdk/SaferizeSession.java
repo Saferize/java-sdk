@@ -7,6 +7,7 @@ public class SaferizeSession {
     };
 	private Status status; 
 	private long id;
+	private Approval approval;
 	
 	public SaferizeSession() {
 	}
@@ -18,5 +19,13 @@ public class SaferizeSession {
 	
 	public long getId() {
 		return id;
+	}
+	
+	public Approval getApproval() {
+		return approval;
+	}
+	
+	protected void setApproval(Approval approval) {
+		this.approval = approval;
 	}
 }

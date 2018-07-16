@@ -4,4 +4,5 @@ public interface WebsocketConnection {
 	public void onConnect();
 	public void onMessage(String message);
 	public void onDisconnect();
+	public void onError();
 }
