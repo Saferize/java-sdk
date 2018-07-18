@@ -110,7 +110,7 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 
 	@Override
 	public void onMessage(String message) {
-		logger.info("Received: " + message);
+		logger.debug("Received: " + message);
 		if (this.connection != null) {
 			this.connection.onMessage(message);
 		}		
@@ -125,7 +125,7 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 	@Override
 	public void onClose(Session session, CloseReason closeReason) {
 		super.onClose(session, closeReason);
-		logger.info("Connection closed: " + closeReason.getReasonPhrase());
+		logger.debug("Connection closed: " + closeReason.getReasonPhrase());
 		this.connection.onDisconnect();
 		synchronized (connectionLock) {
 			connected = false;
