@@ -19,11 +19,7 @@ import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 import javax.websocket.WebSocketContainer;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.saferize.sdk.Configuration;
-import com.saferize.sdk.SaferizeEvent;
 import com.saferize.sdk.SaferizeSession;
 import com.saferize.sdk.WebsocketException;
 
@@ -35,7 +31,7 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 	private WebsocketConnection connection;
 	private JWT jwt;	
 	
-	private Logger logger = LogManager.getLogger(WebsocketClient.class);	
+	//private Logger logger = LogManager.getLogger(WebsocketClient.class);	
 	private Object connectionLock = new Object();
 	private SaferizeSession saferizeSession;
 	private boolean connected = false;
@@ -90,7 +86,7 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 						connect(saferizeSession);
 					}
 				} catch (InterruptedException | WebsocketException e) {
-					logger.error(e);
+					//logger.error(e);
 				}	
 			}						
 		}).start();
@@ -110,7 +106,7 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 
 	@Override
 	public void onMessage(String message) {
-		logger.debug("Received: " + message);
+		//logger.debug("Received: " + message);
 		if (this.connection != null) {
 			this.connection.onMessage(message);
 		}		
@@ -118,14 +114,14 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 	
 	@Override
 	public void onError(Session session, Throwable thr) {
-		logger.error(thr);
+		//logger.error(thr);
 		super.onError(session, thr);
 	}
 	
 	@Override
 	public void onClose(Session session, CloseReason closeReason) {
 		super.onClose(session, closeReason);
-		logger.debug("Connection closed: " + closeReason.getReasonPhrase());
+		//logger.debug("Connection closed: " + closeReason.getReasonPhrase());
 		this.connection.onDisconnect();
 		synchronized (connectionLock) {
 			connected = false;

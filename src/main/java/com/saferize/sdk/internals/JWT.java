@@ -15,9 +15,10 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
-
-import com.auth0.jwt.algorithms.Algorithm;
 import com.saferize.sdk.Configuration;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 class JWT {
 
@@ -33,12 +34,14 @@ class JWT {
 		}
 	}
 	
-	public String generateJWT() {
-		
-        String jwt = com.auth0.jwt.JWT.create().withAudience("https://saferize.com/principal")
-                .withSubject(config.getAccessKey())
-                .withExpiresAt(Date.from(ZonedDateTime.now(ZoneId.of("UTC")).plusSeconds(30).toInstant()))
-                .sign(Algorithm.RSA256(null, privateKey));
+	public String generateJWT() {		
+		String jwt = Jwts.builder()
+			.setSubject(config.getAccessKey())		
+			.setHeaderParam("typ", "JWT")
+			.setAudience("https://saferize.com/principal")
+			.setExpiration(Date.from(ZonedDateTime.now(ZoneId.of("UTC")).plusSeconds(30).toInstant()))
+			.signWith(privateKey, SignatureAlgorithm.RS256)
+			.compact();
         return jwt;
 	}
 	

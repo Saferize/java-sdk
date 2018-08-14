@@ -1,16 +1,20 @@
 package com.saferize.sdk.internals;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.saferize.sdk.ApprovalNotFoundException;
 import com.saferize.sdk.AuthenticationException;
 import com.saferize.sdk.Configuration;
@@ -42,35 +46,64 @@ public class SaferizeConnection {
 		errorMapping.put("com.saferize.core.entities.approval.ApprovalNotFoundException", ApprovalNotFoundException::new);
 	}
 
-	public String get(String path) throws ConnectionException {
-		String token = jwt.generateJWT();
-		try {
-			HttpResponse<String> resp = Unirest.post(configuration.getUrl() + path)
-					.header("Authorization", "Bearer " + token)
-					.header("Accept", ACCEPT_HEADER).asString();
-			if (resp.getStatus() >= 400) {
-				throw new ConnectionException(String.format("Invalid Status Received from Server. Status: %d, Text:%s", resp.getStatus(), resp.getBody()));
-			}			
-			return resp.getBody();
-		} catch (UnirestException e) {
-			throw new  ConnectionException(e);
-		}	
+	
+	private String read(InputStream stream) throws IOException {
+		StringBuilder response = new StringBuilder();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, Charset.defaultCharset()))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				response.append(line);
+			}				
+		}				
+
+		return response.toString();	
 	}
 	
-	public  String post(String path, String body) throws SaferizeClientException {
+	private String connect(String method, String path, String body) throws SaferizeClientException {
 		String token = jwt.generateJWT();
 		try {
-			HttpResponse<String> resp = Unirest.post(configuration.getUrl() + path)
-					.header("Authorization", "Bearer " + token)
-					.header("Accept", ACCEPT_HEADER).body(body).asString();
-			if (resp.getStatus() >= 400) {
-				handleException(resp.getStatus(), resp.getBody());
+			HttpURLConnection connection = (HttpURLConnection) new URL(configuration.getUrl() + path).openConnection();
+			try {
+				connection.addRequestProperty("Authorization", "Bearer " + token);
+				connection.addRequestProperty("Accept", ACCEPT_HEADER);
+				connection.setRequestMethod(method);			
+				connection.setDoOutput(true);
+				boolean hasBody = body != null && !body.isEmpty();
 				
+				if (hasBody) {
+					connection.setDoInput(true);	
+				}
+				
+				connection.connect();
+				
+				if (hasBody) {
+					try (DataOutputStream writer = new DataOutputStream(connection.getOutputStream())) {
+						writer.writeBytes(body);
+						writer.flush();
+					}				
+				}
+				
+				return read(connection.getInputStream());				
+			
+			} catch (IOException e) {							
+				if (connection.getResponseCode() >= 400) {					
+					handleException(connection.getResponseCode(), read(connection.getErrorStream()));
+					return "";
+				}
+				else throw e;
 			}
-			return resp.getBody();
-		} catch (UnirestException e) {
+			
+		} catch (IOException e) {
 			throw new  ConnectionException(e);
 		}		
+	}
+	
+	public String get(String path) throws SaferizeClientException {
+		return connect("GET", path, null);
+	}
+	
+	public String post(String path, String body) throws SaferizeClientException {
+		return connect("POST", path, body);
 	}
 	
    private void handleException(int status, String body) throws SaferizeClientException {
