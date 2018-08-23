@@ -58,6 +58,12 @@ public final class SaferizeClient implements WebsocketConnection {
 		websocket.connect(session);	
 		
 	}
+	
+	public void createProspect(String email) throws SaferizeClientException {
+		JsonObject object = new JsonObject();
+		object.addProperty("email", email);
+		connection.post("/prospect", object.toString());
+	}
 
 	public void onPause(Consumer<SaferizeSession> onPause) {
 		this.onPaused = onPause;
