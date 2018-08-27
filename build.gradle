@@ -8,7 +8,7 @@ repositories {
 }
 
 group = "com.saferize"
-version  = "0.0.1"
+version  = "0.0.2"
 
 
 
@@ -48,7 +48,7 @@ dependencies {
 //	implementation 'org.apache.logging.log4j:log4j-core:2.8.2'	
 	
 	implementation 'io.jsonwebtoken:jjwt-api:0.10.2'
-    runtime 'io.jsonwebtoken:jjwt-impl:0.10.2',
+    implementation 'io.jsonwebtoken:jjwt-impl:0.10.2',
             'io.jsonwebtoken:jjwt-jackson:0.10.2'	
     
     implementation 'com.google.code.gson:gson:2.8.5'

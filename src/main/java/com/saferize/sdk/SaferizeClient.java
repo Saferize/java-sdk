@@ -1,26 +1,24 @@
 package com.saferize.sdk;
 
-import java.util.function.Consumer;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.saferize.sdk.internals.SaferizeConnection;
 import com.saferize.sdk.internals.WebsocketClient;
 import com.saferize.sdk.internals.WebsocketConnection;
 
-public final class SaferizeClient implements WebsocketConnection {
+public  class SaferizeClient implements WebsocketConnection {
 	
 	private SaferizeConnection connection;
 	private WebsocketClient websocket;
 	private Gson gson;
 	private SaferizeSession session;
 	
-	private Consumer<SaferizeSession> onPaused;
-	private Consumer<SaferizeSession> onResumed;
-	private Consumer<SaferizeSession> onTimeIsUp;
-	private Consumer<SaferizeSession> onError;
-	private Consumer<SaferizeSession> onDisconnect;
-	private Consumer<SaferizeSession> onConnect;
+	private SaferizeCallback onPaused;
+	private SaferizeCallback onResumed;
+	private SaferizeCallback onTimeIsUp;
+	private SaferizeCallback onError;
+	private SaferizeCallback onDisconnect;
+	private SaferizeCallback onConnect;
 	
 	public  SaferizeClient(Configuration configuration) throws AuthenticationException, WebsocketException {
 		this.connection = new SaferizeConnection(configuration);
@@ -65,34 +63,34 @@ public final class SaferizeClient implements WebsocketConnection {
 		connection.post("/prospect", object.toString());
 	}
 
-	public void onPause(Consumer<SaferizeSession> onPause) {
+	public void onPause(SaferizeCallback onPause) {
 		this.onPaused = onPause;
 	}
 	
 	
-	public void onResume(Consumer<SaferizeSession> onResume) {
+	public void onResume(SaferizeCallback onResume) {
 		this.onResumed = onResume;
 	}
 	
-	public void onTimeIsUp(Consumer<SaferizeSession> onTimeIsUp) {
+	public void onTimeIsUp(SaferizeCallback onTimeIsUp) {
 		this.onTimeIsUp = onTimeIsUp;
 	}
 	
-	public void onError(Consumer<SaferizeSession> onError) {
+	public void onError(SaferizeCallback onError) {
 		this.onError = onError;
 	}
 	
-	public void onDisconnect(Consumer<SaferizeSession> onDisconnect) {
+	public void onDisconnect(SaferizeCallback onDisconnect) {
 		this.onDisconnect = onDisconnect;
 	}
 	
-	public void onConnect(Consumer<SaferizeSession> onConnect) {
+	public void onConnect(SaferizeCallback onConnect) {
 			this.onConnect = onConnect;	
 	}
 
 	@Override
 	public void onConnect() {
-		if (this.onConnect != null) onConnect.accept(session);
+		if (this.onConnect != null) onConnect.trigger(session);
 	}
 
 
@@ -105,13 +103,13 @@ public final class SaferizeClient implements WebsocketConnection {
 				ApprovalStateChangedEvent approvalEvent = gson.fromJson(message, ApprovalStateChangedEvent.class);
 				session.setApproval(approvalEvent.getEntity());
 				if (Approval.State.PAUSED == approvalEvent.getEntity().getCurrentState()) {
-					if (onPaused != null) onPaused.accept(session);
+					if (onPaused != null) onPaused.trigger(session);
 				} else {
-					if (onResumed != null) onResumed.accept(session);
+					if (onResumed != null) onResumed.trigger(session);
 				}
 				break;	
 			case "UsageTimerTimeIsUpEvent": 
-				if (onTimeIsUp != null) onTimeIsUp.accept(session);
+				if (onTimeIsUp != null) onTimeIsUp.trigger(session);
 				break;
 		}
 
@@ -121,7 +119,7 @@ public final class SaferizeClient implements WebsocketConnection {
 	@Override
 	public void onDisconnect() {
 		if (onDisconnect != null) {
-			onDisconnect.accept(session);
+			onDisconnect.trigger(session);
 		}
 		
 	}
@@ -130,7 +128,7 @@ public final class SaferizeClient implements WebsocketConnection {
 	@Override
 	public void onError() {
 		if (onError != null) {
-			onError.accept(session);
+			onError.trigger(session);
 		}
 		
 	}
