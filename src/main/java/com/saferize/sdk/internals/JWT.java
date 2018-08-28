@@ -6,8 +6,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Date;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -39,7 +37,7 @@ class JWT {
 			.setSubject(config.getAccessKey())		
 			.setHeaderParam("typ", "JWT")
 			.setAudience("https://saferize.com/principal")
-			.setExpiration(Date.from(ZonedDateTime.now(ZoneId.of("UTC")).plusSeconds(30).toInstant()))
+			.setExpiration(new Date(new Date().getTime() + 30000))
 			.signWith(privateKey, SignatureAlgorithm.RS256)
 			.compact();
         return jwt;

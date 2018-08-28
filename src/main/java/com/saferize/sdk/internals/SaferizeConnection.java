@@ -23,13 +23,17 @@ import com.saferize.sdk.SaferizeClientException;
 import com.saferize.sdk.TimeIsUpException;
 
 public class SaferizeConnection {
+	
+	private interface SaferizeFunction<T, R> {
+		 R apply(T t);
+	}
 
 	private Configuration configuration;
 	private JWT jwt;
 	public static final String ACCEPT_HEADER = "application/vnd.saferize.com+json;version=1";
 	private static Gson gson = new Gson();
 	
-	private Map<String, Function<String, ? extends SaferizeClientException>> errorMapping = new HashMap<>();
+	private Map<String, SaferizeFunction<String, ? extends SaferizeClientException>> errorMapping = new HashMap<>();
 	
 	
 	public SaferizeConnection(Configuration configuration) throws AuthenticationException {
@@ -60,7 +64,7 @@ public class SaferizeConnection {
 	}
 	
 	private String connect(String method, String path, String body) throws SaferizeClientException {
-		String token = jwt.generateJWT();
+		String token = jwt.generateJWT();		
 		try {
 			HttpURLConnection connection = (HttpURLConnection) new URL(configuration.getUrl() + path).openConnection();
 			try {
