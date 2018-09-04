@@ -7,6 +7,7 @@ import java.security.Security;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Date;
+import java.util.Map;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -34,11 +35,12 @@ class JWT {
 	
 	public String generateJWT() {		
 		String jwt = Jwts.builder()
+			.serializeToJsonWith(new io.jsonwebtoken.io.JacksonSerializer<Map<String, ?>>())
 			.setSubject(config.getAccessKey())		
 			.setHeaderParam("typ", "JWT")
 			.setAudience("https://saferize.com/principal")
 			.setExpiration(new Date(new Date().getTime() + 30000))
-			.signWith(privateKey, SignatureAlgorithm.RS256)
+			.signWith(privateKey, SignatureAlgorithm.RS256)			
 			.compact();
         return jwt;
 	}
