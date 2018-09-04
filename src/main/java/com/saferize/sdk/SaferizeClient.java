@@ -2,6 +2,7 @@ package com.saferize.sdk;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.saferize.sdk.Activity.ActivityType;
 import com.saferize.sdk.internals.SaferizeConnection;
 import com.saferize.sdk.internals.WebsocketClient;
 import com.saferize.sdk.internals.WebsocketConnection;
@@ -93,6 +94,7 @@ public  class SaferizeClient implements WebsocketConnection {
 		if (this.onConnect != null) onConnect.trigger(session);
 	}
 
+	
 
 	@Override
 	public void onMessage(String message) {
@@ -107,13 +109,13 @@ public  class SaferizeClient implements WebsocketConnection {
 				} else {
 					if (onResumed != null) onResumed.trigger(session);
 				}
-				break;	
+				break; 
 			case "UsageTimerTimeIsUpEvent": 
 				if (onTimeIsUp != null) onTimeIsUp.trigger(session);
 				break;
 		}
 
-	}
+	} 
 
 
 	@Override
@@ -129,8 +131,13 @@ public  class SaferizeClient implements WebsocketConnection {
 	public void onError() {
 		if (onError != null) {
 			onError.trigger(session);
-		}
-		
+		}		
+	}
+	
+	public void createActivity(ActivityType type, String text, String from) throws SaferizeClientException {
+		Activity activity = new Activity(type, text, from);
+		String json = gson.toJson(activity);
+		connection.post(String.format("/session/%d/activity", session.getId()), json);
 	}
 	
 
