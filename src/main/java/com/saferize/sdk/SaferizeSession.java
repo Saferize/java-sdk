@@ -1,6 +1,7 @@
 package com.saferize.sdk;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class SaferizeSession implements Serializable {
     
@@ -12,8 +13,9 @@ public class SaferizeSession implements Serializable {
 	private Status status; 
 	private long id;
 	private Approval approval;
+	private List<Feature> features;
 	
-	public SaferizeSession() {
+	public SaferizeSession() {		
 	}
 
 	
@@ -31,5 +33,18 @@ public class SaferizeSession implements Serializable {
 	
 	protected void setApproval(Approval approval) {
 		this.approval = approval;
+	}
+	
+	public List<Feature> getFeatures() {
+		return features;
+	}
+
+
+	public boolean isFeatureEnabled(String name) {
+		if (features == null) {
+			return true;
+		}
+		
+		return features.stream().anyMatch(feature -> name.equals(feature.getName()) && feature.isParentPrivilege());
 	}
 }
