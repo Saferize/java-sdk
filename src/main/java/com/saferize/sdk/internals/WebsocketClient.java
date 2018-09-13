@@ -9,22 +9,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import javax.websocket.ClientEndpointConfig;
-import javax.websocket.CloseReason;
-import javax.websocket.ContainerProvider;
-import javax.websocket.DeploymentException;
-import javax.websocket.Endpoint;
-import javax.websocket.EndpointConfig;
-import javax.websocket.MessageHandler;
-import javax.websocket.Session;
-import javax.websocket.WebSocketContainer;
-
 import com.saferize.sdk.Configuration;
 import com.saferize.sdk.SaferizeSession;
 import com.saferize.sdk.WebsocketException;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
 
-public class WebsocketClient extends Endpoint implements MessageHandler.Whole<String> {
+
+public class WebsocketClient extends WebSocketListener  {
 
 	private Configuration configuration;
 	
@@ -34,34 +30,31 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 	//private Logger logger = LogManager.getLogger(WebsocketClient.class);	
 	private Object connectionLock = new Object();
 	private SaferizeSession saferizeSession;
-	private boolean connected = false;
+	private Boolean connected = null;
+	private Thread watchDogThread = null;
+	
 	
 	public WebsocketClient(Configuration configuration) throws WebsocketException {		
-		
 		try {
 			this.configuration = configuration;	
 			this.jwt = new JWT(configuration);
 		} catch (JWTException e) {
 			throw new WebsocketException(e);
 		}
-		
 	}
 	
+	/**
+	 * @param session
+	 * @throws WebsocketException
+	 */
 	public void connect(SaferizeSession session) throws WebsocketException {
 		this.saferizeSession = session;
-		WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-		try {			
-			ClientEndpointConfig.Configurator config = new ClientEndpointConfig.Configurator() {
-				@Override
-				public void beforeRequest(Map<String, List<String>> headers) {					
-					headers.put("Authorization", Arrays.asList("Bearer " + jwt.generateJWT()));
-				}
-			};			
-			ClientEndpointConfig cec = ClientEndpointConfig.Builder.create().configurator(config).build();						
-			container.connectToServer(this, cec,  new URI(configuration.getWebsocketUrl().toString() + "?id=" + session.getId()));
-		} catch (DeploymentException | IOException | URISyntaxException  e) {
-			throw new WebsocketException(e);
-		}
+		OkHttpClient client = new OkHttpClient();
+		Request request =  new Request.Builder()
+				.url(configuration.getWebsocketUrl().toString() + "?id=" + session.getId())
+				.addHeader("Authorization", "Bearer " + jwt.generateJWT())
+				.build();
+		WebSocket webSocket = client.newWebSocket(request, this);
 	}
 	
 
@@ -75,7 +68,11 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 	
 	
 	private void createWatchDog() {
-		new Thread(() -> {
+		if (watchDogThread != null) {
+			return;
+		}
+		
+		watchDogThread = new Thread(() -> {
 			while (! Thread.interrupted()) {
 				try {
 					synchronized (connectionLock) {
@@ -83,20 +80,22 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 							connectionLock.wait();
 						}
 						Thread.sleep(5000);
-						connect(saferizeSession);
+						if (!connected) {
+							connect(saferizeSession);
+						}
 					}
 				} catch (InterruptedException | WebsocketException e) {
 					//logger.error(e);
 				}	
 			}						
-		}).start();
+		});
+		watchDogThread.start();
 	}
 	 
 
 
 	@Override
-	public void onOpen(Session session, EndpointConfig config) {
-		session.addMessageHandler(this);
+	public void onOpen(WebSocket webSocket, Response response) {
 		if (this.connection != null) {
 			this.connection.onConnect();
 		}
@@ -104,25 +103,30 @@ public class WebsocketClient extends Endpoint implements MessageHandler.Whole<St
 		createWatchDog();
 	}
 
+
 	@Override
-	public void onMessage(String message) {
-		//logger.debug("Received: " + message);
+	public void onMessage(WebSocket webSocket, String text) {
 		if (this.connection != null) {
-			this.connection.onMessage(message);
+			this.connection.onMessage(text);
 		}		
 	}
 	
 	@Override
-	public void onError(Session session, Throwable thr) {
-		//logger.error(thr);
-		super.onError(session, thr);
+	public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+		super.onFailure(webSocket, t, response);
+		if (this.connection != null) {
+			this.connection.onError();
+			onClosed(webSocket, -1, "failed");
+			
+		}
 	}
-	
+
 	@Override
-	public void onClose(Session session, CloseReason closeReason) {
-		super.onClose(session, closeReason);
+	public void onClosed(WebSocket webSocket, int code, String reason) {
 		//logger.debug("Connection closed: " + closeReason.getReasonPhrase());
-		this.connection.onDisconnect();
+		if (this.connection != null) {
+			this.connection.onDisconnect();
+		}
 		synchronized (connectionLock) {
 			connected = false;
 			connectionLock.notifyAll();	
